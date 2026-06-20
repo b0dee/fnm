@@ -105,10 +105,18 @@ if not exist %userprofile%\profile.cmd (
     echo We have just created this file for you
 )
 
+:: This sets the **USER** path to include ~/.local/bin *persistent* across sessions
+powershell "$current = (Get-ItemProperty -Path 'HKCU:\Environment' -Name Path).Path; if (-not $current.Contains($env:userprofile + '\.local\bin')) { [Environment]::SetEnvironmentVariable('Path', $current + ';' + $env:userprofile + '\.local\bin;', 'User') }"
+
+:: We still need to do this for the *current* session, though.
+:: The above only takes affect from the next new...
+set path=%PATH%;%userprofile%\.local\bin
+
+
 echo Adding FNM section to %userprofile%\profile.cmd
 
 echo. >> %userprofile%\profile.cmd
-echo :: FNM
+echo :: FNM >> %userprofile%\profile.cmd
 echo :: for /F will launch a new instance of cmd so we create a guard to prevent an infnite loop >> %userprofile%\profile.cmd
 echo if not defined FNM_AUTORUN_GUARD ( >> %userprofile%\profile.cmd
 echo     set "FNM_AUTORUN_GUARD=AutorunGuard" >> %userprofile%\profile.cmd
@@ -120,9 +128,6 @@ echo Setting up powershell
 :: There's no downside to "force creating" a directory, it does nothing if it already exists...
 powershell New-Item -Type Directory "$((Get-Item $PROFILE).Directory.FullName)" -Force 2>&1>NUL
 powershell Add-Content -Path $PROFILE -Value '', '# FNM', 'fnm env --use-on-cd --shell powershell ^| Out-String ^| Invoke-Expression' -Encoding UTF8
-
-:: Lazy...
-set path=%PATH%;%userprofile%\.local\bin
 
 exit /b
 
